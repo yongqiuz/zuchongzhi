@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>π 数位分析与数字频率可视化</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@6"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: "Helvetica Neue", sans-serif;
+            background: #fafafa;
+            overflow-x: hidden;
+        }
+        .window-frame {
+        background: #fafafa;
+        border: 2px solid #4A4FA3;
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(109, 115, 234, 0.2);
+        overflow: hidden;
+    }
+
+    .window-header {
+        height: 48px;
+        background: #4A4FA3;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        border-bottom: 2px solid #4A4FA3;
+    }
+
+    .window-title {
+        color: white;
+        font-size: 18px;
+        letter-spacing: 2px;
+        font-weight: 500;
+    }
+
+    .window-controls {
+        display: flex;
+        gap: 16px;
+    }
+
+    .window-button {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 2px 4px #4A4FA3;
+    }
+
+    .minimize-btn {background-color: #4A4FA3; }
+    .maximize-btn {background-color: #4A4FA3; }
+    .close-btn  {background-color: #4A4FA3; }
+
+    .window-button:hover {
+        transform: scale(1.15);
+        opacity: 0.9;
+    }
+        /* 外环（数字分组） */
+       .group path {
+            fill-opacity: 0.8;
+            stroke-linejoin: round;
+            /* 将边框连接处设置为圆角 */
+            stroke-linecap: round;
+            /* 圆角端点 */
+            stroke-width: 1px;
+            /* 调整边框宽度 */
+            cursor: pointer;
+        }
+
+       .group path.highlighted {
+            fill-opacity: 1;
+            stroke-width: 2px;
+        }
+
+        /* 弦*/
+       .chord path {
+            fill: none;
+            stroke-opacity: 1;
+            stroke-width: 0.5px;
+            /* 细线 */
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+       .chord path.highlighted {
+            stroke-opacity: 1;
+            stroke-width: 2px;
+        }
+
+        /* Tooltip 样式 */
+       .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            font-size: 12px;
+            display: none;
+        }
+
+        .chart-container {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .chart-container:hover {
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .chart-title {
+            position: absolute;
+            top: -87px;
+           
+            left: 45%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            font-size: 24px;
+            text-align: center;
+            white-space: nowrap;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .d3chart-title {
+            position: absolute;
+            top: -60px;
+            
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            font-size: 24px;
+            text-align: center;
+            white-space: nowrap;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .main-layout {
+            display: flex;
+            flex-direction: column;
+            /* 垂直排列 */
+            gap: 0px;
+            padding: 20px 20px 20px 30px;
+            background: #f8f9fa;
+            margin-top: 60px;
+            align-items: stretch;
+            box-sizing: border-box;
+        }
+
+        .left-layout {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 20px;
+            min-width: 300px;
+            position: relative;
+            box-sizing: border-box;
+            top:-30px;
+        }
+
+        .middle-layout {
+            flex: 2;
+            min-width: 500px;
+            box-sizing: border-box;
+            top:-50px;
+            position: relative;
+        }
+
+        .right-layout {
+            flex: 1;
+            min-width: 300px;
+            box-sizing: border-box;
+            position: relative;
+            top:-30px;
+        }
+
+        .larger-font {
+            font-size: 1.5em;
+        }
+
+        .legend {
+            font-family: "Helvetica Neue", sans-serif;
+            font-size: 12px;
+        }
+
+       .legend rect {
+            stroke-width: 2;
+        }
+
+        #pieChart {
+            /* 修改：使用 flex 使饼图自适应高度 */
+            flex: 1;
+            margin: 0;
+            background: white;
+            border-radius: 8px;
+            padding: 0px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        #lineChart {
+            /* 修改：使用 flex 使折线图自适应高度 */
+            flex: 1;
+            margin: 0;
+            background: white;
+            border-radius: 8px;
+            padding: 0px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        #d3Chart {
+            height: 100%;
+            /* 修改：让 D3 图表填满父容器高度 */
+            width: 100%;
+            margin: 0;
+            background: white;
+            border-radius: 8px;
+            padding: 0px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #treeChart {
+            height: 100%;
+            /* 修改：让树状图填满父容器高度 */
+            margin: 0;
+            background: white;
+            border-radius: 8px;
+            padding: 0px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        #readCount {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            top:-46px;
+            position: relative;
+            
+        }
+
+       .flex {
+            display: flex;
+        }
+
+       .flex-row {
+            flex-direction: row;
+        }
+
+       .gap-10 {
+            gap: 2.5rem;
+        }
+
+       .text-2xl {
+            font-size: 1.5rem;
+        }
+
+       .font-bold {
+            font-weight: bold;
+        }
+
+       .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+       .text-gray-600 {
+            color: #4b5563;
+        }
+
+       .text-base {
+            font-size: 1rem;
+        }
+
+       .text-center {
+            text-align: center;
+        }
+
+        .max-w-300 {
+        max-width: 300px;
+        }
+        .top-120 {
+            top: 120px;
+        }
+
+       .leading-snug {
+            line-height: 1.375;
+        }
+
+       .z-10 {
+            z-index: 10;
+        }
+
+       .pointer-events-none {
+            pointer-events: none;
+        }
+
+       .whitespace-nowrap {
+            white-space: nowrap;
+        }
+
+       .flex-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+           <!-- 最大容器添加窗口框架 -->
+           <div class="window-frame" style="width: 100%; ">
+            <!-- 窗口标题栏 -->
+            <div class="window-header">
+                <div class="window-title">π 数位分析与数字频率可视化</div>
+                <div class="window-controls">
+                    <div class="window-button minimize-btn">-</div>
+                    <div class="window-button maximize-btn">□</div>
+                    <div class="window-button close-btn">×</div>
+                </div>
+                    </div>
+    <div class="tooltip"></div>
+    <div class="main-layout">
+        <div id="readCount">已读取 <span class="larger-font">0</span> 位</div>
+        <div class="flex flex-row gap-10">
+            <div class="left-layout">
+                <div id="pieChart"></div>
+                <!-- 饼图 -->
+                <div id="lineChart"></div>
+                <!-- 折线图 -->
+            </div>
+            <div class="middle-layout ">
+                <div class="d3chart-title">π 相邻数字弦图展示</div>
+                <span class="absolute top-[80px] left-1/2 transform -translate-x-1/2 text-gray-600 text-base text-center max-w-[300px] leading-snug z-10 pointer-events-none whitespace-nowrap flex-center font-bold">
+                    π是无理数看似混沌的无理数也能画出优美的数学图案
+                </span>
+
+                <div id="d3Chart" class="h-[600px] w-[400px]"></div>
+            </div>
+            <!-- 右侧：树状图 -->
+            <div class="right-layout relative">
+                <div class="chart-title">π 知识结构树</div>
+                <div id="treeChart" class="h-[600px] w-[400px]"></div>
+            </div>
+
+        </div>
+
+        <script>
+    const d3Container = d3.select("#d3Chart");
+    
+    // 容器尺寸
+    const width = d3Container.node().getBoundingClientRect().width;
+    const height = 700;
+    
+    // 创建SVG
+    const svg = d3Container.append("svg")
+       .attr("width", width)
+       .attr("height", height + 50);
+
+    // 半径计算调整
+    const innerRadius = Math.min(width, height) * 0.35;
+    const outerRadius = innerRadius * 1.05;
+    const color = d3.scaleOrdinal()
+       .domain(d3.range(10))
+       .range([
+           "#E6E6FA","#D0D0E1","#C7C9F8","#A3A6F0","#8B8FEB",
+           "#6D73EA","#696DC7","#343CE2","#5255A3","#4A4FA3"
+       ]);
+
+    const tooltip = d3.select(".tooltip");
+    let digits = [];
+    let matrix = Array.from({ length: 10 }, () => Array(10).fill(0));
+    let currentIndex = 0;
+    let animationInterval;
+
+    const g = svg.append("g")
+       .attr("transform", `translate(${width / 2},${height / 2})`);
+
+    const arc = d3.arc()
+       .innerRadius(innerRadius)
+       .outerRadius(outerRadius)
+       .cornerRadius(40);
+
+    // 加载数据后创建可视化
+    d3.json("digits.json").then(data => {
+        digits = data;
+        
+        // 生成完整矩阵
+        const fullMatrix = Array.from({ length: 10 }, () => Array(10).fill(0));
+        for (let i = 0; i < digits.length - 1; i++) {
+            const from = digits[i];
+            const to = digits[i + 1];
+            fullMatrix[from][to]++;
+        }
+
+        // 生成初始弦数据
+        const initialChords = d3.chord()
+           .padAngle(0.03)
+           .sortSubgroups(d3.descending)(fullMatrix);
+
+        // 创建分组（关键修复）
+        const group = g.selectAll(".group")
+           .data(initialChords.groups)
+           .enter().append("g")
+           .attr("class", "group");
+
+        // 添加色块路径（修复颜色绑定）
+        group.append("path")
+           .attr("d", arc)  // 先绘制路径
+           .style("fill", d => color(d.index))
+           .style("stroke", d => d3.rgb(color(d.index)))
+           .style("stroke-width", 1)
+           .on("mouseover", (event, d) => {
+                g.selectAll(".chord path")
+                   .classed("highlighted", c => c.source.index === d.index || c.target.index === d.index);
+                showTip(event, `数字 ${d.index}`);
+            })
+           .on("mousemove", moveTip)
+           .on("mouseout", () => {
+                g.selectAll(".chord path").classed("highlighted", false);
+                hideTip();
+            });
+
+        // 添加外环数字标签
+        group.append("text")
+           .attr("class", "arc-label")
+           .attr("transform", d => {
+                const angle = (d.startAngle + d.endAngle) / 2;
+                const x = Math.sin(angle) * (outerRadius + 15);
+                const y = -Math.cos(angle) * (outerRadius + 15);
+                return `translate(${x},${y})`;
+            })
+           .attr("text-anchor", d => (d.startAngle + d.endAngle)/2 > Math.PI ? "end" : "start")
+           .style("font-size", "20px")
+           .style("fill", "#4b5563")
+           .text(d => d.index);
+
+        // 初始化弦图容器
+        g.append("g").attr("class", "chord");
+
+        // 重置动画数据
+        matrix = Array.from({ length: 10 }, () => Array(10).fill(0));
+        currentIndex = 0;
+        startAnimation();
+    });
+
+    // 弦图更新函数
+    function updateChord() {
+        const chords = d3.chord()
+           .padAngle(0.03)
+           .sortSubgroups(d3.descending)(matrix);
+
+        const ribbon = d3.ribbon()
+           .radius(innerRadius)
+           .padAngle(0.03);
+
+        const chordSelection = g.select(".chord")
+           .selectAll("path")
+           .data(chords, d => `${d.source.index}-${d.target.index}`);
+
+        chordSelection.enter()
+           .append("path")
+           .attr("d", ribbon)
+           .style("stroke", d => d3.rgb(color(d.source.index)).darker())
+           .style("fill", "none")
+           .style("stroke-opacity", 0)
+           .transition()
+           .duration(300)
+           .style("stroke-opacity", 1);
+
+        chordSelection.exit().remove();
+    }
+
+            function startAnimation() {
+                animationInterval = setInterval(() => {
+                    if (currentIndex >= digits.length - 1) {
+                        clearInterval(animationInterval);
+                        // 清除定时器
+                        return;
+                    }
+                    const from = digits[currentIndex];
+                    const to = digits[currentIndex + 1];
+                    matrix[from][to]++;
+                    currentIndex++;
+                    updateChord();
+                }, 100);
+            }
+
+            function showTip(event, html) {
+                tooltip.html(html)
+                   .style("left", (event.pageX + 10) + "px")
+                   .style("top", (event.pageY + 10) + "px")
+                   .style("display", "block");
+            }
+
+            function moveTip(event) {
+                tooltip.style("left", (event.pageX + 10) + "px")
+                   .style("top", (event.pageY + 10) + "px");
+            }
+
+            function hideTip() {
+                tooltip.style("display", "none");
+            }
+
+            // 圆周率数字数据
+            const piDigits = (
+                "14159265358979323846264338327950288419716939937510" +
+                "58209749445923078164062862089986280348253421170679" +
+                "82148086513282306647093844609550582231725359408128" +
+                "48111745028410270193852110555964462294895493038196" +
+                "44288109756659334461284756482337867831652712019091" +
+                "45648566923460348610454326648213393607260249141273" +
+                "72458700660631558817488152092096282925409171536436" +
+                "78925903600113305305488204665213841469519415116094" +
+                "33057270365759591953092186117381932611793105118548" +
+                "07446237996274956735188575272489122793818301194912" +
+                "98336733624406566430860213949463952247371907021798" +
+                "60943702770539217176293176752384674818467669405132" +
+                "00056812714526356082778577134275778960917363717872" +
+                "14684409012249534301465495853710507922796892589235" +
+                "42019956112129021960864034418159813629774771309960" +
+                "51870721134999999837297804995105973173281609631859" +
+                "50244594553469083026425223082533446850352619311881" +
+                "71010003137838752886587533208381420617177669147303" +
+                "59825349042875546873115956286388235378759375195778" +
+                "18577805321712268066130019278766111959092164201989"
+            );
+
+            // 初始化计数器和数据
+            const counts = new Uint32Array(10);
+            const labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            const digitColors = [
+            "#E6E6FA", // 最浅 (L=96.08%)
+        "#D0D0E1", // (L=85.10%)
+        "#C7C9F8", // (L=83.53%)
+        "#A3A6F0", // (L=75.69%)
+        "#8B8FEB", // (L=68.24%)
+        "#6D73EA", // (L=60.20%)
+        "#696DC7", // (L=54.51%)
+        "#343CE2", // (L=48.63%)
+        "#5255A3", // (L=42.75%)
+        "#4A4FA3"  // 最深 (L=37.65%)
+            ];
+
+            // 初始化图表
+            const chartLine = echarts.init(document.getElementById('lineChart'));
+            const chartPie = echarts.init(document.getElementById('pieChart'));
+            const chartTree = echarts.init(document.getElementById('treeChart'));
+
+            // 基础选项配置
+            const baseOption = {
+                animation: false,
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: params => {
+                        return `数字 ${params[0].name}: ${params[0].data} 次`;
+                    }
+                }
+            };
+
+            const lineOption = {
+               ...baseOption,
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: labels,
+                    axisLabel: { interval: 0, color: '#6b7280' },
+                    axisLine: { lineStyle: { color: '#e5e7eb' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '频次',
+                    minInterval: 1,
+                    axisLabel: { color: '#6b7280' },
+                    axisLine: { lineStyle: { color: '#e5e7eb' } },
+                    splitLine: { lineStyle: { color: '#e5e7eb' } }
+                },
+                series: [{
+                    name: '频次',
+                    type: 'line',
+                    data: Array(10).fill(0),
+                    itemStyle: { color: '#4f46e5' },
+                    lineStyle: { width: 3 }
+                }]
+            };
+
+            const pieOption = {
+               ...baseOption,
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function (params) {
+                        return `
+            <div style="font-size:18px; font-weight:bold; color:#1f2937; margin-bottom:6px;">
+              数字分布
+            </div>
+            <div style="font-size:16px; color:#374151;">
+              ${params.name}: ${params.value} 次 (${params.percent}%)
+            </div>
+          `;
+                    }
+                },
+                series: [{
+                    name: '数字分布',
+                    type: 'pie',
+                    radius: '70%',
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 0
+                    },
+                    label: {
+                        show: true,
+                        formatter: '{nameStyle|{b}}: {valueStyle|{c}次}',
+                        rich: {
+                            nameStyle: {
+                                fontSize: 18,
+                                fontWeight: 'bold',
+                                color: '#1f2937'
+                            },
+                            valueStyle: {
+                                fontSize: 16,
+                                color: '#374151'
+                            }
+                        }
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    },
+                    data: []
+                }]
+            };
+
+            var treeOption = {
+                title: {
+                    text: '',
+                    left: 'center',
+                    top: 10,
+                    textStyle: {
+                        fontSize: 24
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    triggerOn: 'mousemove'
+                },
+                series: [
+                    {
+                        type: 'tree',
+                        data: [
+                            {
+                                name: "π 的应用",
+                                children: [
+                                    {
+                                        name: "数学",
+                                        children: [
+                                            { name: "几何学：圆、球体、椭圆体计算" },
+                                            { name: "数论：π 是无理数、超越数" },
+                                            { name: "微积分：积分公式中频繁出现" },
+                                            { name: "概率论：正态分布公式含 π" },
+                                            { name: "拓扑学：角度与闭合曲面" },
+                                            { name: "统计学：卡方分布、t 分布中 π" }
+                                        ]
+                                    },
+                                    {
+                                        name: "物理学",
+                                        children: [
+                                            { name: "圆周运动与振动系统" },
+                                            { name: "波动方程（正弦、余弦函数）" },
+                                            { name: "电磁学：麦克斯韦方程组" },
+                                            { name: "热力学：能量分布公式" }
+
+                                        ]
+                                    },
+                                    {
+                                        name: "工程技术",
+                                        children: [
+                                            { name: "机械工程：齿轮圆周设计" },
+                                            { name: "建筑设计：圆顶、圆柱结构" },
+                                            { name: "信号处理：傅里叶变换频谱" },
+                                            { name: "电气工程：交流信号分析" }
+                                        ]
+                                    },
+                                    {
+                                        name: "天文学",
+                                        children: [
+                                            { name: "行星轨道与开普勒定律" },
+                                            { name: "宇宙模型与膨胀率计算" },
+                                            { name: "天体测量：角度与距离计算" },
+                                            { name: "引力波理论：波长估算" }
+                                        ]
+                                    },
+                                    {
+                                        name: "计算机科学",
+                                        children: [
+                                            { name: "图形学：圆、椭圆渲染算法" },
+                                            { name: "AI 模拟：模拟自然分布" },
+                                            { name: "加密算法：质数生成中用到 π" },
+                                            { name: "图像识别：边缘与轮廓计算" }
+                                        ]
+                                    },
+                                    {
+                                        name: "艺术与文化",
+                                        children: [
+                                            { name: "π日（3月14）全球庆祝" },
+                                            { name: "π诗：字数按 π 排列" },
+                                            { name: "π歌：歌词使用 π 数字" },
+                                            { name: "电影：《π》黑白哲学片" }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ],
+                        top: '5%',
+                        left: '10%',
+                        bottom: '5%',
+                        right: '10%',
+                        symbolSize: 12,
+                        orient: 'vertical',
+                        layout: 'orthogonal',
+                        initialTreeDepth: 1,
+                        nodePadding: 20,
+                        label: {
+                            position: 'top',
+                            verticalAlign: 'middle',
+                            align: 'center',
+                            fontSize: 14,
+                            rotate: 20,
+                            // 文字倾斜 30 度
+
+                            lineHeight: 20
+                        },
+                        leaves: {
+                            label: {
+                                position: 'bottom',
+                                verticalAlign: 'middle',
+                                align: 'center',
+                                fontSize: 13
+                            }
+                        },
+                        lineStyle: {
+                            width: 2
+                        },
+                        expandAndCollapse: true,
+                        animationDuration: 750,
+                        symbol: 'circle'
+                    }
+                ]
+            };
+
+            // 初始化图表
+            chartLine.setOption(lineOption);
+            chartPie.setOption(pieOption);
+            chartTree.setOption(treeOption);
+
+            // 更新图表函数
+            function updateCharts() {
+                const pieData = labels.map((label, index) => ({
+                    value: counts[index],
+                    name: label,
+                    itemStyle: {
+                        color: digitColors[index]
+                        // 确保使用自定义颜色
+                    }
+                }));
+
+                chartLine.setOption({
+                    series: [{
+                        data: Array.from(counts)
+                    }]
+                });
+
+                chartPie.setOption({
+                    series: [{
+                        data: pieData
+                    }]
+                });
+            }
+
+            // 模拟动态数据更新
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index >= piDigits.length) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                const digit = parseInt(piDigits[index]);
+                counts[digit]++;
+                index++;
+
+                updateCharts();
+                const readCountElement = document.getElementById('readCount');
+                readCountElement.innerHTML = `已读取 <span class="larger-font">${index}</span> 位`;
+            }, 30);
+
+
+
+            document.addEventListener('DOMContentLoaded', function() {
+    const closeButtons = document.querySelectorAll('.window-frame .window-button.close-btn');
+    
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 添加跳转前的数据保存逻辑
+            localStorage.setItem('lastVisited', window.location.href);
+            
+            // 使用replace避免回退
+            window.location.replace('home.html');
+        });
+    });
+
+    // 调试信息
+    console.log('找到关闭按钮数量：', closeButtons.length);
+    if(closeButtons.length === 0) {
+        console.warn('未找到任何关闭按钮，请检查：');
+        console.log('1. 类名是否正确组合使用');
+        console.log('2. 元素是否存在于当前DOM树');
+        console.log('3. 脚本执行时机是否过早');
+    }
+});
+        </script>
+</body>
+
+</html>    

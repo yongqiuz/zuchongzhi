@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>祖冲之割圆术π计算可视化大屏</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #D9D9D9;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 20px;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+            background: linear-gradient(135deg, #D9D9D9 0%, #D9D9D9 100%);
+            height: calc(100vh - 60px); /* 留出标题栏空间 */
+        }
+
+        .panel {
+            background: transparent;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: none;
+            background:#D0D0E1; 
+            border: 1px solid #6D73EA; /* 紫色边框 */
+            box-shadow: 0 6px 20px -8px rgba(109, 115, 234, 0.2);
+        }
+
+        .center-panel {
+            grid-column: 2;
+            grid-row: 1 / 4;
+            position: relative;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #3640FF;
+            font-weight: 400;
+        }
+
+        .canvas-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 150px;
+            height: calc(100% - 170px);
+        }
+
+        #mainCanvas {
+            width: 85%;
+            height: 85%;
+            --main-color: #6D73EA;
+            --secondary-color: rgba(109, 115, 234, 0.3);
+        }
+        
+
+        .controls {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        /* 按钮颜色修改 */
+        .start-btn {
+            background: #6D73EA;
+            color: white;
+        }
+
+        .pause-btn {
+            background: #4A4FA3; /* 深紫色 */
+            color: white;
+        }
+
+        .reset-btn {
+            background: #3B3E7A; /* 更深紫色 */
+            color: white;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 30%;
+            left: 1px;
+            transform: translateY(-50%);
+            background: #D0D0E1;
+            border: 1px solid #6D73EA;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-label {
+            color: #000000;
+            margin-right: 8px;
+        }
+
+        .info-value {
+            color: #3640FF;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            height: 8px;
+            background: rgba(208, 208, 225, 0.3);
+            border-radius: 2px;
+        }
+
+        .progress {
+            height: 100%;
+            background: #3640FF;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        .intro-panel {
+            position: absolute;
+            top: 1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 200px;
+            background: #CECEDE;
+            padding: 15px 30px;
+
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #333;
+            border-top: 20px solid #4A4FA3;;
+            backdrop-filter: blur(5px);
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .intro-main {
+            border-right: 1px solid rgba(189, 197, 254, 0.3);
+            padding-right: 20px;
+        }
+
+        .intro-quote {
+            font-style: italic;
+            color: #6D73EA;
+            padding: 12px;
+            background: rgba(244, 214, 168, 0.05);
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .intro-quote::before {
+            content: '"';
+            position: absolute;
+            left: 5px;
+            top: 0;
+            font-size: 24px;
+            color: #F4D6A8;
+            opacity: 0.6;
+        }
+
+        .intro-highlight {
+            color: #BE9C6C;
+            font-weight: bold;
+            padding: 8px;
+            background: rgba(244, 214, 168, 0.05);
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+
+        .intro-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .intro-content {
+            height: 200px;
+            text-align: justify;
+            margin-bottom: 15px;
+        }
+
+        .intro-footer {
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+            font-style: italic;
+            grid-column: 3;
+            align-self: end;
+            margin-top: 8px;
+        }
+
+        .intro-panel .close-btn {
+            cursor: pointer;
+            color: #999;
+            font-size: 18px;
+            transition: color 0.3s;
+        }
+
+        .intro-panel .close-btn:hover {
+            color: #6D73EA;
+        }
+        .window-frame {
+        background: #D0D0E1;
+        border: 2px solid #4A4FA3;
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(109, 115, 234, 0.2);
+        overflow: hidden;
+    }
+
+    .window-header {
+        height: 48px;
+        background: #4A4FA3;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        border-bottom: 2px solid #4A4FA3;
+    }
+
+    .window-title {
+        color: white;
+        font-size: 18px;
+        letter-spacing: 2px;
+        font-weight: 500;
+    }
+
+    .window-controls {
+        display: flex;
+        gap: 16px;
+    }
+
+    .window-button {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 2px 4px #4A4FA3;
+    }
+
+    .minimize-btn {background-color: #4A4FA3; }
+    .maximize-btn {background-color: #4A4FA3; }
+    .close-btn  {background-color: #4A4FA3; }
+
+    .window-button:hover {
+        transform: scale(1.15);
+        opacity: 0.9;
+    }
+    </style>
+</head>
+<body>
+        <!-- 最大容器添加窗口框架 -->
+        <div class="window-frame" style="width: 100%; height: 100vh;">
+            <!-- 窗口标题栏 -->
+            <div class="window-header">
+                <div class="window-title">祖冲之割圆术可视化分析平台</div>
+                <div class="window-controls">
+                    <div class="window-button minimize-btn">-</div>
+                    <div class="window-button maximize-btn">□</div>
+                    <div class="window-button close-btn">×</div>
+                </div>
+                    </div>
+                        <div class="container">
+                            <div class="panel">
+                                <div class="title">边数与π近似值关系</div>
+                                <div id="chart1" style="flex: 1;"></div>
+                            </div>
+                            <div class="panel">
+                                <div class="title">计算误差变化</div>
+                                <div id="chart2" style="flex: 1;"></div>
+                            </div>
+                            <div class="panel">
+                                <div class="title">收敛速度分析</div>
+                                <div id="chart3" style="flex: 1;"></div>
+                            </div>
+                            
+                            <div class="center-panel">
+                                <div class="intro-panel" id="introPanel">
+                                    <div class="intro-main">
+                                        <div class="intro-title">
+                                            <span>《九章算术》与割圆术</span>
+                                        </div>
+                                        <div class="intro-content">
+                                            割圆术是中国古代数学的重要成就，始于《九章算术》。这一方法通过不断增加正多边形的边数来逼近圆的面积和周长，从而计算π值。刘徽在注《九章算术》时，首创割圆术，通过内接正96边形将π值精确到3.14。
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="intro-quote">
+                                            "圆径一而圆周三，径一而周三，周三而径一，此天地之数也。"<br/>
+                                            ——《周髀算经》
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="intro-content">
+                                            后经祖冲之改进，使用内接正24576边形，将π值精确到小数点后7位（3.1415926），这一精度在世界数学史上保持领先约1000年。
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="canvas-container">
+                                    <canvas id="mainCanvas"></canvas>
+                                    <div class="info-panel">
+                                        <div class="info-item">
+                                            <span class="info-label">当前边数:</span>
+                                            <span class="info-value" id="sideCount">6</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">π近似值:</span>
+                                            <span class="info-value" id="piValue">3.000000</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">相对误差:</span>
+                                            <span class="info-value" id="error">4.507%</span>
+                                        </div>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress" id="progress"></div>
+                                    </div>
+                                    <div class="controls">
+                                        <button class="start-btn" id="startBtn">开始演示</button>
+                                        <button class="pause-btn" id="pauseBtn">暂停</button>
+                                        <button class="reset-btn" id="resetBtn">重置</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="panel">
+                                <div class="title">边长变化趋势</div>
+                                <div id="chart4" style="flex: 1;"></div>
+                            </div>
+                            <div class="panel">
+                                <div class="title">历史计算对比</div>
+                                <div id="chart5" style="flex: 1;"></div>
+                            </div>
+                            <div class="panel">
+                                <div class="title">精度提升分析</div>
+                                <div id="chart6" style="flex: 1;"></div>
+                    </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let sides = 6;
+        const maxSides = 1024;
+        let isAnimating = false;
+        let lastUpdateTime = 0;
+        const updateInterval = 200;
+        
+        // 数据存储
+        const data = {
+            sides: [],
+            piValues: [],
+            errors: [],
+            sideLengths: []
+        };
+
+        // Canvas相关
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        let centerX, centerY, radius;
+
+        // 调整Canvas大小
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth * 0.85;
+            canvas.height = container.clientHeight * 0.85;
+            centerX = canvas.width / 2;
+            centerY = canvas.height / 2;
+            radius = Math.min(canvas.width, canvas.height) * 0.35;
+        }
+
+        // 绘制场景
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制参考圆
+            ctx.beginPath();
+            ctx.strokeStyle = '#6D73EA'; // 淡黄色，低透明度
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1;
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 绘制多边形
+            ctx.beginPath();
+            ctx.strokeStyle = '#6D73EA'; 
+            ctx.lineWidth = 2;
+            for (let i = 0; i <= sides; i++) {
+                const angle = (i / sides) * Math.PI * 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // 绘制内接线
+            ctx.beginPath();
+            ctx.strokeStyle = '#6D73EA'; // 淡黄色，更低透明度
+            ctx.lineWidth = 1;
+            for (let i = 0; i < sides; i++) {
+                const angle = (i / sides) * Math.PI * 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // 计算π值
+        function calculatePi(sides) {
+            const sideLength = 2 * Math.sin(Math.PI / sides);
+            const perimeter = sides * sideLength;
+            return perimeter / 2;
+        }
+
+        // 更新数据和UI
+        function updateData() {
+            const piApprox = calculatePi(sides);
+            const error = Math.abs(Math.PI - piApprox) / Math.PI * 100;
+            
+            // 更新数据数组
+            data.sides.push(sides);
+            data.piValues.push(piApprox);
+            data.errors.push(error);
+            data.sideLengths.push(2 * Math.sin(Math.PI / sides));
+
+            // 限制数据点数量
+            if (data.sides.length > 100) {
+                data.sides.shift();
+                data.piValues.shift();
+                data.errors.shift();
+                data.sideLengths.shift();
+            }
+
+            // 更新信息面板
+            document.getElementById('sideCount').textContent = sides;
+            document.getElementById('piValue').textContent = piApprox.toFixed(6)
+            document.getElementById('error').textContent = error.toFixed(3) + '%';
+
+            // 更新进度条
+            const progress = (sides - 6) / (maxSides - 6) * 100;
+            document.getElementById('progress').style.width = `${progress}%`;
+
+            // 更新图表
+            updateCharts();
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 图表1：边数与π近似值关系
+            const chart1 = echarts.init(document.getElementById('chart1'), null, { backgroundColor: 'transparent' });
+            chart1.setOption({
+                grid: { top: 40, right: 50, bottom: 50, left: 60 },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: '{b}边形: π ≈ {c}'
+                },
+                xAxis: { 
+                    type: 'value',
+                    name: '边数',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        color: '#6D73EA'
+                    },
+                    axisLine: {
+                        show: true,
+                        lineStyle: { color: '#6D73EA' }
+                    },
+                    axisTick: { show: true },
+                    axisLabel: {
+                        show: true,
+                        color: '#6D73EA'
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: { color: '#D0D0E1' }
+                    }
+                },
+                yAxis: { 
+                    type: 'value',
+                    name: 'π近似值',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    min: 3,
+                    max: 3.2,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        color: '#D0D0E1'
+                    },
+                    axisLine: {
+                        show: true,
+                        lineStyle: { color: '#6D73EA' }
+                    },
+                    axisTick: { show: true },
+                    axisLabel: {
+                        show: true,
+                        color: '#6D73EA'
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: { color: '#6D73EA' }
+                    }
+                },
+                series: [{
+                    type: 'line',
+                    data: [],
+                    smooth: true,
+                    lineStyle: {
+                        width: 2,
+                        color: '#6D73EA'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 6,
+                    itemStyle: {
+                        color: '#6D73EA'
+                    }
+                }]
+            });
+
+            // 图表2：计算误差变化（改为瀑布图）
+            const chart2 = echarts.init(document.getElementById('chart2'), null, { backgroundColor: 'transparent' });
+            chart2.setOption({
+                grid: { top: 40, right: 50, bottom: 50, left: 60 },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        return `边数: ${params[0].name}<br/>误差: ${params[0].value.toExponential(4)}%<br/>误差减少: ${params[1].value.toFixed(4)}%`;
+                    }
+                },
+                xAxis: { 
+                    type: 'category',
+                    name: '边数',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        color: '#6D73EA'
+                    },
+                    axisLine: {
+                        show: true,
+                        lineStyle: { color: '#999' }
+                    },
+                    axisTick: { show: true },
+                    axisLabel: {
+                        show: true,
+                        color: '#6D73EA'
+                    }
+                },
+                yAxis: [
+                    { 
+                        type: 'log',
+                        name: '误差(%)',
+                        nameLocation: 'middle',
+                        nameGap: 40,
+                        min: 0.0001,
+                        max: 10,
+                        nameTextStyle: {
+                            fontSize: 14,
+                            color: '#6D73EA'
+                        },
+                        axisLine: {
+                            show: true,
+                            lineStyle: { color: '#999' }
+                        },
+                        axisTick: { show: true },
+                        splitLine: {
+                            show: true,
+                            lineStyle: { color: '#eee' }
+                        }
+                    },
+                    {
+                        type: 'value',
+                        name: '误差减少(%)',
+                        nameLocation: 'middle',
+                        nameGap: 40,
+                        nameTextStyle: {
+                            fontSize: 14,
+                            color: '#6D73EA'
+                        },
+                        axisLine: {
+                            show: true,
+                            lineStyle: { color: '#999' }
+                        }
+                    }
+                ],
+                series: [
+        {
+            name: '当前误差',
+            type: 'bar',
+            data: [],
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#6D73EA' },    // 顶部主色
+                    { offset: 1, color: '#4A4FA3' }     // 底部深紫色
+                ]),
+                borderRadius: [3, 3, 0, 0]  // 柱顶圆角
+            },
+            barWidth: '40%',
+            emphasis: {  // 悬停效果
+                itemStyle: {
+                    color: '#343CE2'  // 深蓝紫色
+                }
+            }
+        },
+        {
+            name: '误差减少',
+            type: 'line',
+            yAxisIndex: 1,
+            data: [],
+            lineStyle: {
+                color: '#A3A6F0',  // 浅紫色（原米色#F4D6A8）
+                width: 2,
+                type: 'dotted'     // 改为虚线增加区分度
+            },
+            symbol: 'circle',
+            symbolSize: 8,
+            itemStyle: {
+                color: '#C7C9F8',  // 更浅的紫色数据点
+                borderColor: '#6D73EA',  // 数据点边框色
+                borderWidth: 1
+            },
+            areaStyle: {  // 新增渐变填充
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(163, 166, 240, 0.3)' },  // #A3A6F0
+                    { offset: 1, color: 'rgba(163, 166, 240, 0.05)' }
+                ])
+            }
+        }
+    ]
+});
+
+            // 图表3：收敛速度分析（改为雷达图）
+            const chart3 = echarts.init(document.getElementById('chart3'), null, { backgroundColor: 'transparent' });
+            chart3.setOption({
+                grid: { top: 40, right: 50, bottom: 50, left: 60 },
+                tooltip: {
+                    trigger: 'item'
+                },
+                radar: {
+                    indicator: [
+                        { name: '收敛速度', max: 10 },
+                        { name: '精确位数', max: 10 },
+                        { name: '边数增长', max: 10 },
+                        { name: '误差减少', max: 10 }
+                    ],
+                    center: ['50%', '50%'],
+                    radius: '65%',
+                    name: {
+                        textStyle: {
+                            color: '#6D73EA'
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: '#ddd'
+                        }
+                    },
+                    splitArea: {
+                        show: false
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#ddd'
+                        }
+                    }
+                },
+                series: [{
+                type: 'radar',
+                data: [{
+                    value: [0, 0, 0, 0],
+                    name: '性能指标',
+                    symbol: 'circle',
+                    symbolSize: 8,
+                    lineStyle: {
+                        width: 2,
+                        color: '#343CE2'   // 轮廓线颜色
+                    },
+                    itemStyle: {
+                        color: '#343CE2',  // 数据点颜色
+                        borderWidth: 1
+                    },
+                    areaStyle: {
+                        color: '#343CE2',
+                    }
+                }]
+            }]
+        });
+
+            // 图表4：边长变化趋势
+            const chart4 = echarts.init(document.getElementById('chart4'), null, { backgroundColor: 'transparent' });
+            chart4.setOption({
+                grid: { top: 40, right: 50, bottom: 50, left: 60 },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'cross' }
+                },
+                legend: {
+                    data: ['边长', '相对误差'],
+                    bottom: 10
+                },
+                xAxis: { 
+                    type: 'value',
+                    name: '边数',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    scale: true,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        color: '#6D73EA'
+                    },
+                    axisLine: {
+                        show: true,
+                        lineStyle: { color: '#999' }
+                    },
+                    axisTick: { show: true },
+                    axisLabel: {
+                        show: true,
+                        color: '#6D73EA'
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: { color: '#eee' }
+                    }
+                },
+                yAxis: [{
+                    type: 'value',
+                    name: '边长',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    scale: true,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        color: '#6D73EA'
+                    },
+                    axisLine: {
+                        show: true,
+                        lineStyle: { color: '#999' }
+                    },
+                    axisTick: { show: true },
+                    axisLabel: {
+                        show: true,
+                        color: '#6D73EA'
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: { color: '#eee' }
+                    }
+                }, {
+                    type: 'value',
+                    name: '相对误差(%)',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    scale: true,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        color: '#6D73EA'
+                    },
+                    axisLine: {
+                        show: true,
+                        lineStyle: { color: '#999' }
+                    },
+                    axisTick: { show: true },
+                    axisLabel: {
+                        show: true,
+                        color: '#6D73EA'
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: { color: '#eee' }
+                    }
+                }],
+                series: [{
+        name: '边长',
+        type: 'line',
+        data: [],
+        smooth: true,
+        lineStyle: { 
+            width: 2,
+            color: '#343CE2' // 深蓝色
+        },
+        itemStyle: {
+            color: '#343CE2' // 数据点颜色
+        }
+    }, {
+        name: '相对误差',
+        type: 'line',
+        yAxisIndex: 1,
+        data: [],
+        smooth: true,
+        lineStyle: { 
+            width: 2,
+            color: '#6D73EA' // 主色紫色
+        },
+        itemStyle: {
+            color: '#6D73EA' // 数据点颜色
+        }
+    }]
+});
+
+// 图表5：历史计算对比（竖向线条版本）
+// 图表5：历史计算对比（修正版）
+const chart5 = echarts.init(document.getElementById('chart5'), null, { 
+    backgroundColor: 'transparent' 
+});
+
+chart5.setOption({
+    grid: { top: 20, right: 20, bottom: 20, left: 20 },
+    tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderWidth: 1,
+        borderColor: '#343ce2',
+        textStyle: {
+            color: '#4A4FA3'
+        },
+        formatter: (params) => {
+            const data = params.data;
+            return `
+                <strong style="color:#343ce2;">${data.name}</strong><br>
+                <span style="color:#6D73EA;">${data.era}</span><br>
+                精度：<b style="color:#4A4FA3;">${data.digits}</b>
+            `;
+        }
+    },
+    xAxis: { show: false },
+    yAxis: { show: false, max: 100 },
+    series: [{
+        type: 'custom',
+        renderItem: (params, api) => {
+            const index = params.dataIndex;
+            const value = api.value(1);
+            
+            // 修正1：正确的数学计算
+            const height = Math.log(value + 1) * 30; // 对数缩放
+            const xPos = index * 15 + 150; // 每20像素间距
+            
+            return {
+                type: 'line',
+                shape: {
+                    x1: xPos,
+                    y1: 100,          // 底部对齐
+                    x2: xPos,
+                    y2: 100 - height  // 向上延伸
+                },
+                style: {
+                    stroke: '#6D73EA',
+                    lineWidth: 1.2,    // 细线条
+                    shadowBlur: 6,
+                    shadowColor: 'rgba(109, 115, 234, 0.3)'
+                },
+                emphasis: {
+                    style: {
+                        lineWidth: 3,
+                        stroke: '#343ce2',
+                        shadowBlur: 12
+                    }
+                }
+            };
+        },
+        data: [
+            { name: '古巴比伦', value: 1, era: '公元前1900年', digits: '1位' },
+            { name: '阿基米德', value: 2, era: '公元前250年', digits: '2位' },
+            { name: '刘徽', value: 5, era: '公元263年', digits: '5位' },
+            { name: '祖冲之', value: 7, era: '公元480年', digits: '7位' },
+            { name: '卡西', value: 16, era: '公元1429年', digits: '16位' },
+            { name: '现代计算', value: 31400000000000, era: '2021年', digits: '31.4万亿位' }
+        ],
+        animationDuration: 800
+    }]
+});
+
+// 悬停动画
+chart5.on('mouseover', { seriesIndex: 0 }, function(params) {
+    chart5.dispatchAction({
+        type: 'highlight',
+        seriesIndex: 0,
+        dataIndex: params.dataIndex
+    });
+});
+
+chart5.on('globalout', function() {
+    chart5.dispatchAction({
+        type: 'downplay',
+        seriesIndex: 0
+    });
+});
+            // 图表6：精度提升分析（改为阶梯图）
+            const chart6 = echarts.init(document.getElementById('chart6'), null, { backgroundColor: 'transparent' });
+            chart6.setOption({
+                grid: { top: 40, right: 50, bottom: 50, left: 60 },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        return `边数: ${params[0].name}<br/>精确位数: ${params[0].value.toFixed(2)}`;
+                    }
+                },
+                xAxis: { 
+                    type: 'category',
+                    name: '边数',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        color: '#6D73EA'
+                    },
+                    axisLine: {
+                        show: true,
+                        lineStyle: { color: '#999' }
+                    },
+                    axisTick: { show: true },
+                    axisLabel: {
+                        show: true,
+                        color: '#6D73EA'
+                    }
+                },
+                yAxis: { 
+                    type: 'value',
+                    name: '精确位数',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        color: '#6D73EA'
+                    },
+                    axisLine: {
+                        show: true,
+                        lineStyle: { color: '#999' }
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: { color: '#eee' }
+                    }
+                },
+                series: [{
+        type: 'line',
+        step: 'end',
+        data: [],
+        lineStyle: { 
+            width: 2,
+            color: '#6D73EA'  // 修改为主色（原米色#F4D6A8 → 紫色）
+        },
+        itemStyle: {
+            color: '#6D73EA' // 数据点颜色同步修改
+        },
+        symbol: 'circle',
+        symbolSize: 8,
+        markLine: {
+            silent: true,
+            data: [{
+                yAxis: 7,
+                label: {
+                    formatter: '祖冲之精度',
+                    position: 'insideEndTop',
+                    color: '#4A4FA3'  // 标签文字颜色修改
+                },
+                lineStyle: {
+                    color: '#343CE2', // 标记线颜色（原#BE9C6C → 深蓝紫）
+                    type: 'dashed',
+                    width: 1.5
+                }
+            }]
+        }
+    }]
+});
+
+            return { chart1, chart2, chart3, chart4, chart5, chart6 };
+        }
+
+        // 更新图表
+        function updateCharts() {
+            // 计算当前数据
+            const piApprox = calculatePi(sides);
+            const error = Math.abs(Math.PI - piApprox) / Math.PI * 100;
+            const sideLength = 2 * Math.sin(Math.PI / sides);
+            const convergenceRate = -Math.log10(error);
+            const precision = Math.pow(10, -error/100);
+
+            // 更新数据数组
+            data.sides.push(sides);
+            data.piValues.push(piApprox);
+            data.errors.push(error);
+            data.sideLengths.push(sideLength);
+
+            // 限制数据点数量
+            if (data.sides.length > 100) {
+                data.sides.shift();
+                data.piValues.shift();
+                data.errors.shift();
+                data.sideLengths.shift();
+            }
+
+            // 更新图表1：边数与π近似值关系
+            charts.chart1.setOption({
+                series: [{
+                    data: data.sides.map((s, i) => [s, data.piValues[i]])
+                }]
+            });
+
+            // 计算误差减少
+            const errorReduction = data.errors.map((error, index) => {
+                if (index === 0) return 0;
+                return data.errors[index - 1] - error;
+            });
+
+            // 更新图表2：计算误差变化
+            charts.chart2.setOption({
+                xAxis: {
+                    data: data.sides.map(String)
+                },
+                series: [{
+                    data: data.errors
+                }, {
+                    data: errorReduction
+                }]
+            });
+
+            // 更新图表3：收敛速度分析
+            const sideGrowthRate = Math.log2(sides/6) / Math.log2(maxSides/6) * 10;
+            const errorReductionRate = Math.min((data.errors[0] - error) / data.errors[0] * 10, 10);
+            const accuracyDigits = Math.min(-Math.log10(error/100), 10);
+
+            charts.chart3.setOption({
+                series: [{
+                    data: [{
+                        value: [
+                            convergenceRate,
+                            accuracyDigits,
+                            sideGrowthRate,
+                            errorReductionRate
+                        ]
+                    }]
+                }]
+            });
+
+            // 更新图表4：边长变化趋势
+            charts.chart4.setOption({
+                series: [{
+                    data: data.sides.map((s, i) => [s, data.sideLengths[i]])
+                }, {
+                    data: data.sides.map((s, i) => [s, Math.abs(1 - data.sideLengths[i]) * 100])
+                }]
+            });
+
+            // 更新图表6：精度提升分析
+            charts.chart6.setOption({
+                xAxis: {
+                    data: data.sides.map(String)
+                },
+                series: [{
+                    data: data.sides.map((_, i) => {
+                        const precision = -Math.log10(data.errors[i]/100);
+                        return precision;
+                    })
+                }]
+            });
+        }
+
+        // 动画循环
+        function animate(timestamp) {
+            if (!lastUpdateTime) lastUpdateTime = timestamp;
+            
+            if (isAnimating && timestamp - lastUpdateTime > updateInterval) {
+                if (sides < maxSides) {
+                    sides = Math.min(sides + Math.max(1, Math.floor(sides / 30)), maxSides);
+                    drawScene();
+                    updateData();
+                    lastUpdateTime = timestamp;
+                } else {
+                    isAnimating = false;
+                    document.getElementById('startBtn').textContent = '重新开始';
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        // 事件监听
+        document.getElementById('startBtn').addEventListener('click', function() {
+            if (sides >= maxSides) {
+                sides = 6;
+                data.sides = [];
+                data.piValues = [];
+                data.errors = [];
+                data.sideLengths = [];
+                drawScene();
+                updateData();
+                this.textContent = '开始演示';
+            }
+            
+            isAnimating = !isAnimating;
+            this.textContent = isAnimating ? '运行中' : '继续';
+            if (!lastUpdateTime) {
+                lastUpdateTime = performance.now();
+                requestAnimationFrame(animate);
+            }
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', function() {
+            isAnimating = false;
+            document.getElementById('startBtn').textContent = '继续';
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            isAnimating = false;
+            sides = 6;
+            data.sides = [];
+            data.piValues = [];
+            data.errors = [];
+            data.sideLengths = [];
+            drawScene();
+            updateData();
+            document.getElementById('startBtn').textContent = '开始演示';
+        });
+
+        // 窗口大小调整
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            drawScene();
+            Object.values(charts).forEach(chart => chart.resize());
+        });
+
+        // 初始化
+        const charts = initCharts();
+        resizeCanvas();
+        drawScene();
+        updateData();
+
+        function toggleIntroPanel() {
+            const panel = document.getElementById('introPanel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+    const closeButtons = document.querySelectorAll('.window-frame .window-button.close-btn');
+    
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 添加跳转前的数据保存逻辑
+            localStorage.setItem('lastVisited', window.location.href);
+            
+            // 使用replace避免回退
+            window.location.replace('home.html');
+        });
+    });
+
+    // 调试信息
+    console.log('找到关闭按钮数量：', closeButtons.length);
+    if(closeButtons.length === 0) {
+        console.warn('未找到任何关闭按钮，请检查：');
+        console.log('1. 类名是否正确组合使用');
+        console.log('2. 元素是否存在于当前DOM树');
+        console.log('3. 脚本执行时机是否过早');
+    }
+});
+    </script>
+</body>
+</html>

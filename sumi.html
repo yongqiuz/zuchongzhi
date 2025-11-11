@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>祖冲之 · 粟米算法可视化大屏</title>
+  <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.2/echarts.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background-color: #d9d9d9;
+      font-family: 'Microsoft YaHei', sans-serif;
+      color: #444;
+      overflow: hidden;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 25% 50% 25%;
+      height: 100vh;
+      gap: 20px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .chart-box {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 10px;
+      height: 45%;
+      transition: transform 0.2s ease;
+    }
+    .chart-box:hover {
+      transform: scale(1.03);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    #grainCanvas {
+      width: 100%;
+      height: 60%;
+      background: radial-gradient(circle at center, #fbfbfb, #f8f8f8);
+      border-radius: 12px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+    }
+    #piValue {
+      font-size: 18px;
+      color: #3640FF;
+      margin: 8px 0;
+    }
+    .introduction {
+      margin-bottom: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 8px;
+      padding: 10px 20px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.6;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      max-width: 80%;
+    }
+    .explanation {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+      width: 90%;
+      text-align: center;
+    }
+    .window-frame {
+        background: #D0D0E1;
+        border: 2px solid #4A4FA3;
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(109, 115, 234, 0.2);
+        overflow: hidden;
+    }
+
+    .window-header {
+        height: 48px;
+        background: #4A4FA3;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        border-bottom: 2px solid #4A4FA3;
+    }
+
+    .window-title {
+        color: white;
+        font-size: 18px;
+        letter-spacing: 2px;
+        font-weight: 500;
+    }
+
+    .window-controls {
+        display: flex;
+        gap: 16px;
+    }
+
+    .window-button {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 2px 4px #4A4FA3;
+    }
+
+    .minimize-btn {background-color: #4A4FA3; }
+    .maximize-btn {background-color: #4A4FA3; }
+    .close-btn  {background-color: #4A4FA3; }
+
+    .window-button:hover {
+        transform: scale(1.15);
+        opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+ <div class="window-frame" style="width: 100%; height: 100vh;">
+        <!-- 窗口标题栏 -->
+        <div class="window-header">
+        <div class="window-title">粟米算法动态演示</div>
+        <div class="window-controls">
+            <div class="window-button minimize-btn">-</div>
+            <div class="window-button maximize-btn">□</div>
+            <div class="window-button close-btn">×</div>
+            </div>
+            </div>
+        <div class="container">
+        <div class="side">
+        <div class="chart-box" id="chart1"></div>
+        <div class="chart-box" id="chart2"></div>
+        </div>
+        <div class="center">
+        <div class="explanation">
+        <p>粟米算法不仅是一种古老的π值估算方法，更是一种结合古人智慧与现代算法的视觉系统设计。它源自祖冲之的伟大思想，通过模拟“粟米”落点展现“有限逼近无限”的数学之美，令古老的精神在现代数据中焕发光芒。</p>
+        </div>
+        <canvas id="grainCanvas"></canvas>
+        <div id="piValue">π ≈ 0</div>
+        <div class="introduction">
+        <h3 style="color:#6f6fd7;margin-bottom:8px;">粟米算法简介</h3>
+        <p><strong>粟米算法</strong>出自中国古代数学经典《九章算术》的<strong>《粟米》</strong>章以粮食兑换为背景，主要解决比例分配问题，例如粟、稻、麦等不同谷物之间的交换比率计算。</p>
+        <p style="margin:6px 0; text-align:center;">3.1415926 &lt; π &lt; 3.1415927</p>
+        <p>今天，我们将“粟米算法”升华为一种 <strong>拟古结合现代</strong> 的系统设计语言，不仅还原其数学精神，也赋予其文化意蕴，令其在可视化与算法融合中焕发新生。这既是对祖冲之精神的致敬，也是一种让古法在数字时代重构表达的探索。。</p>
+        </div>
+        </div>
+        <div class="side">
+        <div class="chart-box" id="chart3"></div>
+        <div class="chart-box" id="chart4"></div>
+    </div>
+<script>
+  const canvas = document.getElementById('grainCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const maxRadius = Math.min(centerX, centerY) * 0.8;
+  const totalGrains = 800;
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
+  function drawGrain(x, y, size = 3) {
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+    gradient.addColorStop(0, '#6D73EA');   // 主色
+    gradient.addColorStop(1, '#4A4FA3');   // 深紫色
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  let frame = 0;
+  function animateGrainsFibonacci() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < frame; i++) {
+      const angle = i * goldenAngle;
+      const radius = maxRadius * Math.sqrt(i / totalGrains);
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      drawGrain(x, y, 2.5);
+    }
+    document.getElementById('piValue').innerText = `π ≈ ${(frame / 2).toFixed(6)}`;
+    frame = (frame + 1) % totalGrains;
+    requestAnimationFrame(animateGrainsFibonacci);
+  }
+  animateGrainsFibonacci();
+
+  const dataX = [], piApprox = [], error = [], barCategory = [], ratioData = [], scatterData = [];
+  for (let i = 50; i <= totalGrains; i += 50) {
+    const val = (i / 2);
+    dataX.push(i);
+    piApprox.push(val.toFixed(6));
+    error.push((Math.abs(val - Math.PI)).toFixed(6));
+    barCategory.push(`第${i / 50}组`);
+    ratioData.push((Math.PI / val).toFixed(4));
+    scatterData.push([i, val.toFixed(6)]);
+  }
+
+  const chart1 = echarts.init(document.getElementById('chart1'));
+  const chart2 = echarts.init(document.getElementById('chart2'));
+  const chart3 = echarts.init(document.getElementById('chart3'));
+  const chart4 = echarts.init(document.getElementById('chart4'));
+  
+  // 图表配色配置
+  const chartColors = {
+    main: '#6D73EA',        // 主色
+    light: '#A3A6F0',       // 浅紫色
+    dark: '#4A4FA3',        // 深紫色
+    accent: '#343CE2',      // 强调色
+    gradient: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      { offset: 0, color: '#6D73EA' },
+      { offset: 1, color: '#4A4FA3' }
+    ])
+  };
+
+  const optionStyle = {
+    textStyle: { 
+      fontFamily: 'Microsoft YaHei',
+      color: '#4A4FA3'  // 文字颜色
+    },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#F0F0FA',  // 浅紫色背景
+      borderColor: '#6D73EA',
+      textStyle: {
+        color: '#4A4FA3'
+      }
+    },
+    animationDuration: 1000
+  };
+
+ // 图表1：π逼近曲线
+ chart1.setOption({
+    ...optionStyle,
+    title: { 
+      text: 'π 逼近曲线', 
+      textStyle: { color: '#4A4FA3' }, 
+      left: 'center' 
+    },
+    xAxis: { 
+      data: dataX,
+      axisLine: { lineStyle: { color: chartColors.main } }
+    },
+    yAxis: {
+      axisLine: { lineStyle: { color: chartColors.main } }
+    },
+    series: [{ 
+      name: '估算值', 
+      type: 'line', 
+      data: piApprox, 
+      smooth: true, 
+      itemStyle: { color: chartColors.main },
+      lineStyle: { width: 2 }
+    }]
+  });
+
+  // 图表2：误差变化图
+  chart2.setOption({
+    ...optionStyle,
+    title: { 
+      text: '误差变化图', 
+      textStyle: { color: '#4A4FA3' }, 
+      left: 'center' 
+    },
+    xAxis: { 
+      data: dataX,
+      axisLine: { lineStyle: { color: chartColors.main } }
+    },
+    yAxis: {
+      axisLine: { lineStyle: { color: chartColors.main } }
+    },
+    series: [{ 
+      name: '误差', 
+      type: 'bar', 
+      data: error, 
+      itemStyle: { 
+        color: chartColors.gradient,
+        borderRadius: [4, 4, 0, 0]
+      }
+    }]
+  });
+
+  // 图表3：粒子密度分布图
+  chart3.setOption({
+    ...optionStyle,
+    title: { 
+      text: '粒子密度分布图', 
+      textStyle: { color: '#4A4FA3' }, 
+      left: 'center' 
+    },
+    xAxis: { 
+      type: 'category', 
+      data: barCategory,
+      axisLine: { lineStyle: { color: chartColors.main } }
+    },
+    yAxis: { 
+      type: 'value',
+      axisLine: { lineStyle: { color: chartColors.main } }
+    },
+    series: [{
+      type: 'line', 
+      data: dataX.map(v => Math.floor((v * Math.random()) / 50)), 
+      smooth: true, 
+      itemStyle: { color: chartColors.accent },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#6D73EA90' },
+          { offset: 1, color: '#4A4FA330' }
+        ])
+      }
+    }]
+  });
+
+  // 图表4：π比例分析图
+  chart4.setOption({
+    ...optionStyle,
+    title: { 
+      text: 'π 比例分析图', 
+      textStyle: { color: '#4A4FA3' }, 
+      left: 'center' 
+    },
+    xAxis: { 
+      data: dataX,
+      axisLine: { lineStyle: { color: chartColors.main } }
+    },
+    yAxis: {
+      axisLine: { lineStyle: { color: chartColors.main } }
+    },
+    series: [{
+      name: 'π / 估算值', 
+      type: 'line', 
+      data: ratioData, 
+      smooth: true, 
+      itemStyle: { color: chartColors.dark },
+      lineStyle: {
+        type: 'dashed',
+        width: 1.5
+      }
+    }]
+  });
+
+  setTimeout(() => {
+    echarts.connect([chart1, chart2, chart3, chart4]);
+  }, 500);
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const closeButtons = document.querySelectorAll('.window-frame .window-button.close-btn');
+    
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 添加跳转前的数据保存逻辑
+            localStorage.setItem('lastVisited', window.location.href);
+            
+            // 使用replace避免回退
+            window.location.replace('home.html');
+        });
+    });
+
+    // 调试信息
+    console.log('找到关闭按钮数量：', closeButtons.length);
+    if(closeButtons.length === 0) {
+        console.warn('未找到任何关闭按钮，请检查：');
+        console.log('1. 类名是否正确组合使用');
+        console.log('2. 元素是否存在于当前DOM树');
+        console.log('3. 脚本执行时机是否过早');
+    }
+});
+</script>
+</body>
+</html>

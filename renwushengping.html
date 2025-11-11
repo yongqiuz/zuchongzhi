@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生平轨迹</title>
+    <script src="./node_modules/echarts/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        /* 全局样式 - 融合深蓝主题 */
+        body {
+            margin: 0;
+            padding: 0;
+            background: #D9D9D9;
+            font-family: 'SimSun', serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+    
+        /* 主容器 - 保留结构优化视觉 */
+        .container {
+            flex: 1;
+            width: 95%;
+            max-width: 1600px;
+            margin: 20px auto;
+            background: #F0F0F0;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(109, 115, 234, 0.2);
+            overflow: hidden;
+        }
+        .content-wrapper {
+                padding: 10px;
+                height: calc(100% - 80px);
+            }
+    
+        /* 导航栏 - 深蓝主题适配 */
+        .terminal-nav {
+            height: 50px;
+            background: #4A4FA3;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-radius: 12px 12px 0 0;
+            border-bottom: 2px solid #343CE2;
+        }
+    
+        /* 控制按钮 - 统一深蓝风格 */
+        .title-bar-controls {
+            margin-left: auto;
+            display: flex;
+            gap: 12px;
+        }
+    
+        .control-button {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: #6D73EA;
+            transition: transform 0.2s;
+        }
+    
+        .control-button:hover {
+            transform: scale(1.15);
+            opacity: 0.9;
+        }
+    
+        .minimize { background: #4A4FA3; }
+        .maximize { background: #4A4FA3; }
+        .close    { background: #4A4FA3; }
+    
+        /* 导航菜单 - 适配深蓝主题 */
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px 20px;
+            border-bottom: 2px solid #4A4FA3;
+            margin-top: 30px;
+        }
+    
+        .nav-item a {
+            color: #40448a;
+            text-decoration: none; /* 取消下划线 */
+            cursor: pointer;
+            font-size: x-large;
+        }
+
+        .nav-item a:hover {
+            color: #272956; /* 鼠标悬停时稍微变深 */
+        }
+        /* 主内容区 - 保留结构优化配色 */
+        .content-wrapper {
+            padding: 30px;
+            display: flex;
+            gap: 30px;
+            min-height: 80vh;
+        }
+    .chart-life{
+        display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 30px 30px;
+    }
+        /* 地图容器 - 深蓝主题边框 */
+        .map-container {
+            flex: 2;
+            min-width: 800px;
+            height: 540px;
+            border: 2px solid #4A4FA3;
+            border-radius: 10px;
+            background: #FFF;
+            box-shadow: 0 4px 12px rgba(109, 115, 234, 0.15);
+        }
+    
+        .geo-layer path {
+            filter: 
+                drop-shadow(2px 2px 3px rgba(0,0,0,0.1))
+                brightness(0.97);
+        }
+    
+/* 组合容器样式 */
+.combined-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 30px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30px !important;
+}
+
+.map-container {
+    flex: 1 1 30%;
+    min-width: 400px;
+    max-width: 800px;
+}
+
+.iframe-container {
+    flex: 1 1 30%;
+    min-width: 600px;
+    max-width: 800px;
+    border: 2px solid #4A4FA3;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #FFF;
+    box-shadow: 0 4px 12px rgba(109, 115, 234, 0.15);
+}
+
+.iframe-container iframe {
+    width: 100%;
+    height: 540px; /* 与地图容器同高 */
+}
+
+/* 修改组合容器为垂直排列 */
+.combined-container {
+    display: flex;
+    flex-direction: column; /* 改为垂直排列 */
+    gap: 30px;
+    padding: 30px !important;
+}
+
+/* 新增顶部行容器 */
+.top-row {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+}
+
+/* 调整地图和iframe容器 */
+.map-container,
+.iframe-container {
+    flex: 1;
+    min-width: 400px;
+    height: 540px;
+}
+
+/* 修改信息容器布局 */
+.info-container {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+    padding: 0 !important; /* 移除原有内边距 */
+    margin-top: 20px; /* 添加与上方容器的间距 */
+}
+
+/* 调整信息框样式 */
+.info-box {
+    flex: 1;
+    min-width: 300px;
+    height: 400px;
+    margin: 0; /* 移除原有外边距 */
+}
+
+/* 响应式适配 */
+@media (max-width: 1400px) {
+    .top-row {
+        flex-wrap: wrap;
+    }
+    
+    .map-container,
+    .iframe-container {
+        flex-basis: 100%;
+        max-width: 100%;
+    }
+
+    .info-container {
+        flex-wrap: wrap;
+    }
+    
+    .info-box {
+        flex-basis: calc(50% - 15px);
+    }
+}
+
+@media (max-width: 768px) {
+    .info-box {
+        flex-basis: 100%;
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        <div class="terminal-nav">
+            <div class="title-bar-controls">
+                <div class="control-button minimize">-</div>
+                <div class="control-button maximize">□</div>
+                <div class="control-button close">×</div>
+            </div>
+        </div>
+        <div class="nav-bar">
+            <div class="nav-item">
+                <a href="renwushengping.html" class="nav-link">人物生平</a>
+            </div>
+            <div class="nav-item">
+                <a href="geyuanshu.html" class="nav-link">割圆术</a>
+            </div>
+            <div class="nav-item">
+                <a href="PIs.html" class="nav-link">Π的密码</a>
+            </div>
+            <div class="nav-item">
+                <a href="sumi.html" class="nav-link">粟米法</a>
+            </div>
+        </div>
+    <!-- 修改后的容器结构 -->
+    <div class="content-wrapper combined-container">
+        <!-- 顶部行容器 -->
+        <div class="top-row">
+            <div id="map" class="map-container"></div>
+            <div class="iframe-container">
+                <iframe name="nrd_studio_embed" frameborder="0" 
+                        src="https://nrdstudio.cn/view/embed/3b5c89182ae7ea079bf0b4d25992694d"></iframe>
+            </div>
+        </div>
+            <div class="info-container">
+                <div class="info-box" id="chart-life"></div>
+                <div class="info-box" id="chart-compare"></div>
+                <div class="info-box" id="chart-field"></div>
+            </div>
+        </div>
+
+<script>
+// 地理坐标数据（新增巡游地点）
+const geoData = {
+    '建康': [118.7969, 32.0603],   // 南京
+    '娄县': [120.9587, 31.3859],   // 昆山
+    '丹阳': [118.489, 31.553],     // 当涂
+    '吴郡': [120.585, 31.300],     // 苏州
+    '徐州': [117.184, 34.269],     // 彭城
+    '豫州': [114.000, 33.000],     // 河南南部
+    '会稽': [120.582, 30.050],     // 绍兴
+    '临海': [121.423, 28.658],     // 台州
+
+};
+
+// 生平轨迹数据（含完整路线段）
+const timelineData = [
+    { 
+        time: "429–440年",
+        location: "建康",
+        path: [],
+        achievement: "家族教育，启蒙数学、天文"
+    },
+    {
+        time: "440–464年",
+        location: "华林学省",
+        path: [geoData.建康],
+        achievement: "学术研究，奠定数学与历法基础"
+    },
+    {
+        time: "464–479年",
+        location: "娄县",
+        path: [
+            [geoData.建康, geoData.娄县] // 建康到娄县
+        ],
+        achievement: "推动农业与水利改革"
+    },
+    {
+        time: "479–494年",
+        location: "全国巡游",
+        path: [
+            [geoData.娄县, geoData.丹阳],   // 娄县→丹阳
+            [geoData.丹阳, geoData.吴郡],     // 丹阳→吴郡
+            [geoData.吴郡, geoData.徐州],     // 吴郡→徐州
+            [geoData.徐州, geoData.豫州],     // 徐州→豫州
+            [geoData.豫州, geoData.会稽],     // 豫州→会稽
+            [geoData.会稽, geoData.临海],     // 会稽→临海
+            [geoData.临海, geoData.建康]      // 返回建康
+        ],
+        achievement: "完善《大明历》与机械发明"
+    },
+
+];
+
+let chartInstance = null;
+
+// 创建轨迹线数据（关键修正）
+function createJourneyLines() {
+    const lines = [];
+    timelineData.forEach(item => {
+        item.path.forEach(segment => {
+            lines.push({
+                coords: segment,
+                lineStyle: {
+                    color: getColorByPeriod(item.time),
+                    width: item.time === "479–494年" ? 4 : 2,
+                    type: item.time === "479–494年" ? 'solid' : 'dashed',
+                    curveness: 0.2
+                },
+                effect: {
+                    show: item.time === "479–494年",
+                    period: 4,
+                    trailLength: 0.1,
+                    symbol: 'arrow',
+                    symbolSize: [12, 8],
+                    color: '#797ff2'
+                }
+            });
+        });
+    });
+    return lines;
+}
+
+// 时期颜色映射
+function getColorByPeriod(period) {
+    const colors = {
+        "429–440年": "#8D6E63",
+        "440–464年": "#6D4C41",
+        "464–479年": "#4E342E",
+        "479–494年": "#acb0f9", // 修改巡游时期颜色
+        "494–500年": "#BF360C"
+    };
+    return colors[period] || "#795548";
+}
+
+
+// 初始化地图（重要改进）
+async function initMap() {
+    try {
+        const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
+        const chinaJson = await response.json();
+        
+        // 销毁旧实例
+        if (chartInstance) echarts.dispose(chartInstance);
+        
+        // 注册地图
+        echarts.registerMap('ZU_MAP', chinaJson);
+        
+        // 初始化图表
+        chartInstance = echarts.init(document.getElementById('map'));
+        
+        // 配置选项
+        const option = {
+            title: {
+                text: '祖冲之生平轨迹图',
+                subtext: '数据包含历史记载与学术推演',
+                left: 'center',
+                textStyle: {
+                    fontSize: 20,
+                    color: '#191c57'
+                }
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: function(params) {
+                    if(params.seriesType === 'lines') {
+                        return `路线：${params.data.coords.map(p => p.join(',')).join(' → ')}`;
+                    }
+                    return params.name;
+                }
+            },
+            geo: {
+                map: 'ZU_MAP',
+                roam: true,
+                zoom: 3.5,
+                center: [113.0, 28.0],
+                itemStyle: {
+                    areaColor: '#D9D9D9',
+                    borderColor: '#6D73EA',
+                    borderWidth: 0.8
+                },
+                emphasis: {
+                    itemStyle: {
+                        areaColor: '#adb1f7'
+                    }
+                }
+            },
+            series: [
+                // 轨迹线系列
+                {
+                    type: 'lines',
+                    coordinateSystem: 'geo',
+                    zlevel: 2,
+                    polyline: false,
+                    data: createJourneyLines(),
+                    lineStyle: {
+                        opacity: 0.9
+                    },
+                    effect: {
+                        show: true,
+                        period: 6,
+                        trailLength: 0.2,
+                        symbolSize: [12, 8]
+                    }
+                },
+                // 地点标记
+                {
+                    type: 'scatter',
+                    coordinateSystem: 'geo',
+                    zlevel: 3,
+                    data: Object.entries(geoData).map(([name, value]) => ({
+                        name,
+                        value,
+                        symbolSize: name === '建康' ? 18 : 12,
+                        itemStyle: {
+                            color: name === '建康' ? '#3B3E7A' : '#4A4FA3'
+                        }
+                    })),
+                    label: {
+                        show: true,
+                        formatter: '{b}',
+                        position: 'right',
+                        color: '#191c57'
+                    }
+                }
+            ]
+        };
+
+        chartInstance.setOption(option);
+        window.addEventListener('resize', () => chartInstance.resize());
+        
+    } catch (error) {
+        console.error('地图初始化失败:', error);
+        showError(`地图加载失败: ${error.message}`);
+    }
+}
+
+// 初始化时间轴（增强交互）
+function initTimeline() {
+    const container = document.getElementById('timeline');
+    
+    timelineData.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'timeline-card';
+        card.innerHTML = `
+            <div class="timeline-marker" style="background:${getColorByPeriod(item.time)}"></div>
+            <div class="timeline-content">
+                <h4>${item.time}</h4>
+                <p class="achievement">${item.achievement}</p>
+                ${item.time === "479–494年" ? `
+                    <div class="journey-details">
+                        <p> 主要行程：</p>
+                        <ul>
+                            <li>丹阳（军事工程考察）</li>
+                            <li>吴郡（太湖水利研究）</li>
+                            <li>徐州（天文观测实践）</li>
+                            <li>豫州（机械技术交流）</li>
+                            <li>会稽（潮汐规律记录）</li>
+                            <li>临海（航海设备测试）</li>
+                        </ul>
+                    </div>` : ''}
+            </div>
+        `;
+        
+        // 交互事件
+        card.addEventListener('mouseenter', () => {
+            const highlightIndexes = [];
+            timelineData.forEach((data, idx) => {
+                if(data.time === item.time) {
+                    highlightIndexes.push(idx);
+                }
+            });
+            chartInstance.dispatchAction({
+                type: 'downplay',
+                seriesIndex: 0
+            });
+            highlightIndexes.forEach(idx => {
+                chartInstance.dispatchAction({
+                    type: 'highlight',
+                    seriesIndex: 0,
+                    dataIndex: idx
+                });
+            });
+        });
+        
+        container.appendChild(card);
+    });
+}
+
+// 错误处理
+function showError(msg) {
+    const container = document.getElementById('map');
+    container.innerHTML = `
+        <div style="text-align:center;padding:20px;color:#dc3545">
+            <h3>⚠️ 地图加载失败</h3>
+            <p>${msg}</p>
+            <button onclick="window.location.reload()" 
+                    style="margin-top:10px;padding:8px 16px;background:#dc3545;color:white;border:none;border-radius:4px">
+                重新加载
+            </button>
+        </div>
+    `;
+}
+
+// 初始化
+window.onload = () => {
+    initMap();
+    initTimeline();
+};
+
+ // 新增关闭按钮事件 ↓↓↓
+ document.querySelector('.control-button.close').addEventListener('click', function() {
+            window.location.href = 'home.html';
+        });
+
+
+        const timelineChart = echarts.init(document.getElementById('chart-life'));
+
+// 时间轴图表
+timelineChart.setOption({
+  title: {
+    text: '祖冲之生平大事记',
+    left: 'center',
+    textStyle: { 
+      color: '#4A4FA3',  // 最深紫色 (原:#b58840)
+      fontSize: 18 
+    }
+  },
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: ['429年 出生', '450年 任职太学博士', '462年 算出 π 精度', '477年 撰写《缀术》', '500年 去世'],
+    axisLabel: { 
+      interval: 0, 
+      rotate: 20, 
+      color: '#333' 
+    }
+  },
+  yAxis: { type: 'value', show: false },
+  series: [{
+    data: [1, 2, 3, 4, 5],
+    type: 'line',
+    symbolSize: 12,
+    lineStyle: { color: '#6D73EA' },  // 中紫色 (原:#d4af37)
+    itemStyle: { color: '#6D73EA' }   // 中紫色
+  }]
+});
+
+
+
+
+
+const compareChart = echarts.init(document.getElementById('chart-compare'));
+
+// 对比图表
+compareChart.setOption({
+  title: {
+    text: '祖冲之与历史科学家影响力对比',
+    left: 'center',
+    textStyle: { 
+      color: '#4A4FA3',  // 最深紫色
+      fontSize: 18 
+    }
+  },
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'value',
+    name: '影响指数',
+    axisLabel: { color: '#555' }
+  },
+  yAxis: {
+    type: 'category',
+    data: ['祖冲之', '牛顿', '阿基米德', '张衡', '李时珍'],
+    axisLabel: { color: '#333' }
+  },
+  series: [{
+    data: [95, 98, 90, 85, 70],
+    type: 'bar',
+    barWidth: '40%',
+    itemStyle: { 
+      color: '#696DC7'  // 深紫色 (原:#d4af37)
+    }
+  }]
+});
+
+
+
+
+const fieldChart = echarts.init(document.getElementById('chart-field'));
+
+// 玫瑰图
+fieldChart.setOption({
+  title: {
+    text: '研究领域占比（玫瑰图）',
+    left: 'center',
+    textStyle: { 
+      color: '#4A4FA3',  // 最深紫色
+      fontSize: 18 
+    }
+  },
+  tooltip: { trigger: 'item' },
+  series: [{
+    name: '研究领域',
+    type: 'pie',
+    radius: ['20%', '65%'],
+    roseType: 'radius',
+    data: [
+      { value: 35, name: '数学', itemStyle: { color: '#343CE2' } },
+      { value: 25, name: '天文', itemStyle: { color: '#6D73EA' } },
+      { value: 20, name: '机械', itemStyle: { color: '#8B8FEB' } },
+      { value: 10, name: '历法', itemStyle: { color: '#C7C9F8' } },
+      { value: 10, name: '哲学/文学', itemStyle: { color: '#E6E6FA' } }
+    ],
+    itemStyle: {
+      borderColor: '#E6E6FA',  // 最浅紫色边框
+      borderWidth: 2
+    }
+  }]
+});
+</script>
+</body>
+</html>

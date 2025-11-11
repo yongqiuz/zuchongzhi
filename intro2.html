@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>祖冲之与历史科学家对比</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+<body style="background:#f8f5f0">
+  <div id="chart-compare" style="width: 600px; height: 350px; margin: auto;"></div>
+  <script>
+    const compareChart = echarts.init(document.getElementById('chart-compare'));
+
+    compareChart.setOption({
+      title: {
+        text: '祖冲之与历史科学家影响力对比',
+        left: 'center',
+        textStyle: { color: '#b58840', fontSize: 18 }
+      },
+      tooltip: { trigger: 'axis' },
+      xAxis: {
+        type: 'value',
+        name: '影响指数',
+        axisLabel: { color: '#555' }
+      },
+      yAxis: {
+        type: 'category',
+        data: ['祖冲之', '牛顿', '阿基米德', '张衡', '李时珍'],
+        axisLabel: { color: '#333' }
+      },
+      series: [{
+        data: [95, 98, 90, 85, 70],
+        type: 'bar',
+        barWidth: '40%',
+        itemStyle: { color: '#d4af37' }
+      }]
+    });
+  </script>
+</body>
+</html>

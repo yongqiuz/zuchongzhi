@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>祖冲之生平时间轴</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+<body style="background:#f8f5f0">
+  <div id="chart-life" style="width: 600px; height: 300px; margin: auto;"></div>
+  <script>
+    const timelineChart = echarts.init(document.getElementById('chart-life'));
+
+    timelineChart.setOption({
+      title: {
+        text: '祖冲之生平大事记',
+        left: 'center',
+        textStyle: { color: '#b58840', fontSize: 18 }
+      },
+      tooltip: { trigger: 'axis' },
+      xAxis: {
+        type: 'category',
+        data: ['429年 出生', '450年 任职太学博士', '462年 算出 π 精度', '477年 撰写《缀术》', '500年 去世'],
+        axisLabel: { interval: 0, rotate: 20, color: '#333' }
+      },
+      yAxis: { type: 'value', show: false },
+      series: [{
+        data: [1, 2, 3, 4, 5],
+        type: 'line',
+        symbolSize: 12,
+        lineStyle: { color: '#d4af37' },
+        itemStyle: { color: '#d4af37' }
+      }]
+    });
+  </script>
+</body>
+</html>
